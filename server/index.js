@@ -37,6 +37,7 @@ const DEFAULT_PROGRESS = {
   wordForgeWins: 0,
   patternWins: 0,
   adventureWins: 0,
+  dungeonClears: [],
   dailyBonusDate: '',
   claimedQuests: [],
   badges: [],

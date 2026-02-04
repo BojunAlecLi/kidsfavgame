@@ -6,9 +6,10 @@ import { writingPrompts } from './data/writingPrompts.js';
 import { badges, outfits, accessories, companions } from './data/rewards.js';
 import { wordForgePuzzles } from './data/wordForge.js';
 import { patternRounds } from './data/patternData.js';
-import { zones, quests, relics, enemies, adventures } from './data/rpgData.js';
+import { quests, relics, enemies, adventures } from './data/rpgData.js';
+import { dungeons, mapPaths } from './data/dungeonData.js';
 import AvatarPreview from './components/AvatarPreview.jsx';
-import PhaserCanvas from './components/PhaserCanvas.jsx';
+import BabylonCanvas from './components/BabylonCanvas.jsx';
 
 const STORAGE_PROFILE_ID = 'moonlit-profile-id';
 const ENERGY_MAX = 10;
@@ -42,6 +43,7 @@ const DEFAULT_PROGRESS = {
   wordForgeWins: 0,
   patternWins: 0,
   adventureWins: 0,
+  dungeonClears: [],
   dailyBonusDate: '',
   claimedQuests: [],
   badges: [],
@@ -70,6 +72,7 @@ const SCREEN = {
   PATTERN: 'pattern',
   ADVENTURE: 'adventure',
   OVERWORLD: 'overworld',
+  DUNGEON: 'dungeon',
 };
 
 const GAME_SCREENS = new Set([
@@ -83,6 +86,7 @@ const GAME_SCREENS = new Set([
   SCREEN.PATTERN,
   SCREEN.ADVENTURE,
   SCREEN.OVERWORLD,
+  SCREEN.DUNGEON,
 ]);
 
 const baseOptions = [
@@ -133,6 +137,22 @@ const hashString = (value) => {
   return Math.abs(hash);
 };
 
+const normalizeProgress = (saved) => {
+  if (!saved) return { ...DEFAULT_PROGRESS };
+  return {
+    ...DEFAULT_PROGRESS,
+    ...saved,
+    inventory: {
+      ...DEFAULT_PROGRESS.inventory,
+      ...(saved.inventory || {}),
+    },
+    claimedQuests: saved.claimedQuests || [],
+    badges: saved.badges || [],
+    recentRewards: saved.recentRewards || [],
+    dungeonClears: saved.dungeonClears || [],
+  };
+};
+
 const badgeNameById = (id) => badges.find((badge) => badge.id === id)?.name || 'Badge';
 
 const computeBadges = (progress) => {
@@ -173,7 +193,7 @@ const api = async (path, options = {}) => {
 export default function App() {
   const [screen, setScreen] = useState(SCREEN.HUB);
   const [dailyMode, setDailyMode] = useState(null);
-  const [activeZone, setActiveZone] = useState(zones[0]?.id || 'moon-meadow');
+  const [activeDungeonId, setActiveDungeonId] = useState(dungeons[0]?.id || '');
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
   const [progress, setProgress] = useState(DEFAULT_PROGRESS);
   const [profileId, setProfileId] = useState(null);
@@ -191,7 +211,7 @@ export default function App() {
           const data = await api(`/profile/${cachedId}`);
           setProfileId(data.profileId);
           setProfile(data.profile);
-          setProgress(data.progress);
+          setProgress(normalizeProgress(data.progress));
         }
         const list = await api('/profiles');
         setProfilesList(list);
@@ -283,6 +303,12 @@ export default function App() {
       if (payload.items?.length) {
         const nextItems = new Set([...(prev.inventory.items || []), ...payload.items]);
         next.inventory = { ...prev.inventory, items: Array.from(nextItems) };
+      }
+
+      if (payload.dungeonClearId) {
+        const clears = new Set([...(prev.dungeonClears || [])]);
+        clears.add(payload.dungeonClearId);
+        next.dungeonClears = Array.from(clears);
       }
 
       if (payload.claimQuestId) {
@@ -402,7 +428,7 @@ export default function App() {
       });
       setProfileId(data.profileId);
       setProfile(data.profile);
-      setProgress(data.progress);
+      setProgress(normalizeProgress(data.progress));
       localStorage.setItem(STORAGE_PROFILE_ID, data.profileId);
       const list = await api('/profiles');
       setProfilesList(list);
@@ -485,11 +511,13 @@ export default function App() {
       )}
 
       {screen === SCREEN.MAP && (
-        <MapScreen
-          activeZone={activeZone}
-          onSelectZone={setActiveZone}
+        <WorldMapScreen
+          progress={progress}
           onBack={() => setScreen(SCREEN.HUB)}
-          onStartGame={(next) => startScreen(next)}
+          onStartDungeon={(dungeonId) => {
+            setActiveDungeonId(dungeonId);
+            startScreen(SCREEN.DUNGEON);
+          }}
         />
       )}
 
@@ -690,6 +718,32 @@ export default function App() {
         />
       )}
 
+      {screen === SCREEN.DUNGEON && (
+        <DungeonScreen
+          dungeonId={activeDungeonId}
+          onBack={() => setScreen(SCREEN.MAP)}
+          onComplete={(result) => {
+            if (!result.win) {
+              setToast('Boss defeated you. Train and try again.');
+              setScreen(SCREEN.MAP);
+              return;
+            }
+            const dungeon = dungeons.find((item) => item.id === result.dungeonId);
+            if (!dungeon) return;
+            awardProgress({
+              stars: dungeon.reward.stars,
+              gems: dungeon.reward.gems,
+              xp: dungeon.reward.xp,
+              energyCost: 2,
+              dungeonClearId: dungeon.id,
+              log: `Dungeon cleared: ${dungeon.name}`,
+              toast: `${dungeon.name} cleared!`,
+            });
+            setScreen(SCREEN.MAP);
+          }}
+        />
+      )}
+
       {screen === SCREEN.OVERWORLD && (
         <OverworldScreen onBack={() => setScreen(SCREEN.HUB)} />
       )}
@@ -811,7 +865,7 @@ function Hub({ dailyChallengeType, progress, onNavigate, onStartDaily, onStartGa
           <h2>Welcome to the Moonlit Academy</h2>
           <p>
             Explore stories, polish your grammar, write magical tales, and master math quests.
-            Earn gems, collect companions, level up, and unlock new zones on the world map.
+            Earn gems, collect companions, level up, and unlock new dungeons on the world map.
           </p>
           <div className="hero-actions">
             <button onClick={() => onNavigate(SCREEN.MAP)}>World Map</button>
@@ -867,47 +921,182 @@ function Hub({ dailyChallengeType, progress, onNavigate, onStartDaily, onStartGa
   );
 }
 
-function MapScreen({ activeZone, onSelectZone, onBack, onStartGame }) {
-  const zone = zones.find((item) => item.id === activeZone) || zones[0];
+function WorldMapScreen({ progress, onBack, onStartDungeon }) {
+  const [offset, setOffset] = useState({ x: -120, y: -80 });
+  const [scale, setScale] = useState(1);
+  const [selectedId, setSelectedId] = useState(dungeons[0]?.id);
+  const dragRef = useRef({ active: false, x: 0, y: 0 });
+
+  const selected = dungeons.find((item) => item.id === selectedId) || dungeons[0];
+  const requirementNames = selected?.requires?.map((req) => dungeons.find((item) => item.id === req)?.name || req) || [];
+
+  const isCleared = (dungeon) => progress.dungeonClears.includes(dungeon.id);
+  const isUnlocked = (dungeon) => dungeon.requires.every((req) => progress.dungeonClears.includes(req));
+
+  const handleDown = (event) => {
+    dragRef.current = { active: true, x: event.clientX, y: event.clientY };
+  };
+
+  const handleMove = (event) => {
+    if (!dragRef.current.active) return;
+    const dx = event.clientX - dragRef.current.x;
+    const dy = event.clientY - dragRef.current.y;
+    dragRef.current = { active: true, x: event.clientX, y: event.clientY };
+    setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+  };
+
+  const handleUp = () => {
+    dragRef.current.active = false;
+  };
+
+  const clampScale = (value) => Math.min(1.4, Math.max(0.7, value));
+
+  const handleWheel = (event) => {
+    event.preventDefault();
+    const delta = event.deltaY > 0 ? -0.05 : 0.05;
+    setScale((prev) => clampScale(prev + delta));
+  };
+
+  const handleTouchStart = (event) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    dragRef.current = { active: true, x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchMove = (event) => {
+    const touch = event.touches[0];
+    if (!touch || !dragRef.current.active) return;
+    const dx = touch.clientX - dragRef.current.x;
+    const dy = touch.clientY - dragRef.current.y;
+    dragRef.current = { active: true, x: touch.clientX, y: touch.clientY };
+    setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+  };
+
+  const handleTouchEnd = () => {
+    dragRef.current.active = false;
+  };
+
+  const nodeById = dungeons.reduce((acc, item) => {
+    acc[item.id] = item;
+    return acc;
+  }, {});
 
   return (
     <GameShell title="World Map" onQuit={onBack}>
-      <div className="map-layout">
-        <div className="map-grid">
-          {zones.map((item) => (
+      <div className="world-map">
+        <div className="map-toolbar">
+          <button className="ghost" onClick={() => setScale((prev) => clampScale(prev + 0.1))}>
+            Zoom +
+          </button>
+          <button className="ghost" onClick={() => setScale((prev) => clampScale(prev - 0.1))}>
+            Zoom -
+          </button>
+          <button className="ghost" onClick={() => setOffset({ x: -120, y: -80 })}>
+            Center
+          </button>
+        </div>
+        <div
+          className="map-view"
+          onMouseDown={handleDown}
+          onMouseMove={handleMove}
+          onMouseUp={handleUp}
+          onMouseLeave={handleUp}
+          onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div
+            className="map-canvas"
+            style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
+          >
+            <div className="map-surface" />
+            <svg className="map-paths" viewBox="0 0 1200 700">
+              {mapPaths.map(([startId, endId]) => {
+                const start = nodeById[startId];
+                const end = nodeById[endId];
+                if (!start || !end) return null;
+                return (
+                  <line
+                    key={`${startId}-${endId}`}
+                    x1={start.map.x}
+                    y1={start.map.y}
+                    x2={end.map.x}
+                    y2={end.map.y}
+                  />
+                );
+              })}
+            </svg>
+            {dungeons.map((dungeon) => {
+              const locked = !isUnlocked(dungeon);
+              const cleared = isCleared(dungeon);
+              return (
+                <button
+                  key={dungeon.id}
+                  className={`map-node ${locked ? 'locked' : ''} ${cleared ? 'cleared' : ''}`}
+                  style={{ left: `${dungeon.map.x}px`, top: `${dungeon.map.y}px` }}
+                  onClick={() => setSelectedId(dungeon.id)}
+                >
+                  <span>{dungeon.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {selected && (
+          <div className="map-panel">
+            <h3>{selected.name}</h3>
+            <p>
+              Boss: <strong>{selected.boss}</strong>
+            </p>
+            <p>Recommended: {selected.recommended}</p>
+            <div className="map-reward">
+              Rewards: ⭐ {selected.reward.stars} | 💎 {selected.reward.gems} | XP {selected.reward.xp}
+            </div>
+            <div className="map-requirements">
+              Requires: {requirementNames.length ? requirementNames.join(', ') : 'None'}
+            </div>
             <button
-              key={item.id}
-              className={`zone-card ${item.id === zone.id ? 'active' : ''}`}
-              onClick={() => onSelectZone(item.id)}
+              onClick={() => onStartDungeon(selected.id)}
+              disabled={!isUnlocked(selected)}
             >
-              <h3>{item.name}</h3>
-              <p>{item.theme}</p>
-              <span>{item.spotlight}</span>
+              {isCleared(selected) ? 'Replay Dungeon' : 'Enter Dungeon'}
             </button>
-          ))}
-        </div>
-        <div className="zone-panel">
-          <h3>{zone.name}</h3>
-          <p>{zone.theme}</p>
-          <div className="zone-npc">
-            <strong>Guide:</strong> {zone.npc}
-          </div>
-          <div className="zone-actions">
-            <button onClick={() => onStartGame(SCREEN.OVERWORLD)}>Enter Overworld</button>
-            <button className="ghost" onClick={() => onStartGame(SCREEN.ADVENTURE)}>
-              Story Adventure
-            </button>
-            <button className="ghost" onClick={() => onStartGame(SCREEN.BATTLE)}>
-              Spell Battle
-            </button>
-            <button className="ghost" onClick={() => onStartGame(SCREEN.WORDFORGE)}>
-              Word Forge
-            </button>
-            <button className="ghost" onClick={() => onStartGame(SCREEN.PATTERN)}>
-              Pattern Path
+            <button
+              className="ghost"
+              onClick={() => onStartDungeon(selected.id)}
+              disabled={!isUnlocked(selected)}
+            >
+              Raid Practice
             </button>
           </div>
+        )}
+      </div>
+    </GameShell>
+  );
+}
+
+function DungeonScreen({ dungeonId, onBack, onComplete }) {
+  const dungeon = dungeons.find((item) => item.id === dungeonId) || dungeons[0];
+
+  return (
+    <GameShell title={dungeon.name} onQuit={onBack}>
+      <div className="overworld-grid">
+        <div>
+          <h3>Dungeon Rules</h3>
+          <ul className="control-list">
+            <li>Move: WASD or Arrow keys</li>
+            <li>Cast spell: Press 1 or click “Cast Spell”</li>
+            <li>Counterspell: Press 2 during boss cast</li>
+            <li>Wrong answer: Lose HP</li>
+          </ul>
+          <p>Defeat {dungeon.boss} by answering questions during spell casts.</p>
         </div>
+        <BabylonCanvas
+          mode="dungeon"
+          bossName={dungeon.boss}
+          onComplete={(result) => onComplete({ ...result, dungeonId: dungeon.id })}
+        />
       </div>
     </GameShell>
   );
@@ -1594,24 +1783,18 @@ function StoryAdventure({ onFinish, onQuit }) {
 }
 
 function OverworldScreen({ onBack }) {
-  React.useEffect(() => {
-    const handler = () => onBack();
-    window.addEventListener('moonlit:overworldComplete', handler);
-    return () => window.removeEventListener('moonlit:overworldComplete', handler);
-  }, [onBack]);
-
   return (
     <GameShell title="Overworld Training" onQuit={onBack}>
       <div className="overworld-grid">
         <div>
           <h3>Controls</h3>
           <ul className="control-list">
-            <li>Move: Arrow keys</li>
-            <li>Cast spell: Space</li>
+            <li>Move: WASD or Arrow keys</li>
+            <li>Camera: drag mouse</li>
           </ul>
-          <p>Defeat the practice boss by casting spells. This is a Phaser 3 scene you can expand into dungeons and raids.</p>
+          <p>Explore the 3D overworld with a WoW-style follow camera.</p>
         </div>
-        <PhaserCanvas />
+        <BabylonCanvas mode="overworld" />
       </div>
     </GameShell>
   );
