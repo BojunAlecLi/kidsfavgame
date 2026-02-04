@@ -149,6 +149,11 @@ button:disabled {
   gap: 16px;
 }
 
+.profile-actions {
+  display: grid;
+  gap: 8px;
+}
+
 .profile-name {
   font-weight: 700;
 }
@@ -157,6 +162,20 @@ button:disabled {
   display: flex;
   gap: 12px;
   font-weight: 600;
+}
+
+.xp-bar {
+  margin-top: 6px;
+  width: 160px;
+  height: 8px;
+  background: #efe6ff;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.xp-bar div {
+  height: 100%;
+  background: linear-gradient(90deg, #7ed9ff, #ff9fd2);
 }
 
 .toast {
@@ -169,6 +188,52 @@ button:disabled {
   text-align: center;
   font-weight: 600;
   animation: fade-toast 2.8s ease forwards;
+}
+
+.loading {
+  margin: 80px auto;
+  max-width: 360px;
+  background: #fff;
+  padding: 24px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  text-align: center;
+  font-weight: 700;
+}
+
+.login-card {
+  margin: 60px auto;
+  max-width: 420px;
+  background: #fff;
+  padding: 28px;
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 16px;
+}
+
+.login-form {
+  display: flex;
+  gap: 10px;
+}
+
+.login-form input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 2px solid #efe3ff;
+  font-family: inherit;
+}
+
+.login-list {
+  display: grid;
+  gap: 10px;
+}
+
+.login-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 @keyframes fade-toast {
@@ -243,6 +308,7 @@ button:disabled {
   flex-direction: column;
   gap: 10px;
   animation: floatIn 0.6s ease both;
+  color: var(--ink);
 }
 
 .card-tag {
@@ -292,6 +358,99 @@ button:disabled {
   flex-direction: column;
   gap: 20px;
   animation: floatIn 0.6s ease both;
+}
+
+.map-layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.map-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.zone-card {
+  text-align: left;
+  background: #fff;
+  border-radius: 18px;
+  padding: 16px;
+  color: var(--ink);
+  border: 2px solid transparent;
+  box-shadow: 0 12px 24px rgba(57, 30, 86, 0.08);
+}
+
+.zone-card span {
+  display: block;
+  margin-top: 8px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.zone-card.active {
+  border: 2px solid var(--accent);
+}
+
+.zone-panel {
+  background: #fff9ff;
+  border-radius: 20px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.zone-npc {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff0f7;
+  font-weight: 600;
+}
+
+.zone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.quest-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.quest-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+  box-shadow: 0 12px 24px rgba(57, 30, 86, 0.08);
+}
+
+.quest-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.quest-bar {
+  flex: 1;
+  height: 8px;
+  background: #efe6ff;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.quest-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff9fd2, #7ed9ff);
+}
+
+.quest-reward {
+  font-weight: 600;
+  color: var(--ink-soft);
 }
 
 .game-header {
@@ -389,6 +548,155 @@ button:disabled {
   font-weight: 700;
 }
 
+.battle-arena {
+  display: grid;
+  gap: 12px;
+  background: #f7f3ff;
+  padding: 14px;
+  border-radius: 16px;
+}
+
+.hp-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 70px;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.hp-row.enemy {
+  color: #7b2f45;
+}
+
+.hp-bar {
+  height: 10px;
+  background: #f0e6ff;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.hp-bar div {
+  height: 100%;
+  background: linear-gradient(90deg, #ff9fd2, #ffa07a);
+}
+
+.enemy-taunt {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff0f7;
+  font-weight: 600;
+}
+
+.battle-log {
+  display: grid;
+  gap: 6px;
+  background: #fff;
+  padding: 12px;
+  border-radius: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.battle-result {
+  text-align: center;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: 14px;
+  background: #fff0f7;
+  color: #a53b63;
+}
+
+.word-forge {
+  display: grid;
+  gap: 16px;
+}
+
+.word-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 48px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #fff7e8;
+}
+
+.word-slot {
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.word-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.word-bank button {
+  background: #eef6ff;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.word-bank button.selected {
+  opacity: 0.5;
+}
+
+.word-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.overworld-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  align-items: start;
+}
+
+.control-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.phaser-frame {
+  width: 100%;
+  max-width: 800px;
+  min-height: 600px;
+  background: #f7f3ff;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 18px 30px rgba(57, 30, 86, 0.2);
+}
+
+.phaser-frame canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.phaser-overlay {
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.adventure-text {
+  background: #f7f3ff;
+  padding: 18px;
+  border-radius: 18px;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
 .rewards-grid {
   display: grid;
   gap: 18px;
@@ -418,6 +726,27 @@ button:disabled {
 
 .badge.earned {
   background: #fff2d5;
+  opacity: 1;
+}
+
+.relic-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 12px;
+}
+
+.relic {
+  background: #f1f1f7;
+  border-radius: 16px;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+  opacity: 0.6;
+}
+
+.relic.owned {
+  background: #e9f9ff;
   opacity: 1;
 }
 
@@ -610,6 +939,20 @@ button:disabled {
   color: var(--ink-soft);
 }
 
+.name-input {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.name-input input {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid #efe3ff;
+  font-family: inherit;
+  width: 100%;
+}
+
 .inventory-preview {
   background: #fff7ff;
   padding: 16px;
@@ -631,7 +974,14 @@ button:disabled {
 
   .profile {
     width: 100%;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .profile-actions {
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
 
   .game-header {

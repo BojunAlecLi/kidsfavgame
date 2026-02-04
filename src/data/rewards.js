@@ -5,6 +5,10 @@ export const badges = [
   { id: 'writer-wings', name: 'Writer Wings', requirement: 'Complete 3 writing prompts.' },
   { id: 'streak-star', name: 'Streak Star', requirement: 'Earn a 5-question streak.' },
   { id: 'moon-master', name: 'Moon Master', requirement: 'Earn 50 stars total.' },
+  { id: 'battle-bright', name: 'Battle Bright', requirement: 'Win 2 spell battles.' },
+  { id: 'word-wizard', name: 'Word Wizard', requirement: 'Finish 3 Word Forge sessions.' },
+  { id: 'pattern-pro', name: 'Pattern Pro', requirement: 'Finish 3 Pattern Path sessions.' },
+  { id: 'level-leader', name: 'Level Leader', requirement: 'Reach level 5.' },
 ];
 
 export const outfits = [
